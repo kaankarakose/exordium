@@ -2,10 +2,9 @@ import csv
 import random
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Self
+from typing import Self, Optional
 from dataclasses import dataclass
 import numpy as np
-from decord import VideoReader, cpu
 from exordium import PathType
 from exordium.video.io import image2np
 from exordium.video.bb import xywh2xyxy, xywh2midwh, crop_mid
@@ -108,25 +107,26 @@ class DetectionFromVideo(Detection):
 
     source: str
 
-    def _create_vr(self) -> VideoReader:
+    def _create_vr(self) -> 'decord.VideoReader':
+        from decord import VideoReader, cpu
         return VideoReader(str(self.source), ctx=cpu(0))
 
-    def frame(self, vr: VideoReader | None = None) -> np.ndarray:
+    def frame(self, vr: Optional['decord.VideoReader'] = None) -> np.ndarray:
         vr = vr or self._create_vr()
         return vr[self.frame_id].asnumpy() # RGB
 
-    def bb_crop(self, vr: VideoReader | None = None) -> np.ndarray:
+    def bb_crop(self, vr: Optional['decord.VideoReader'] = None) -> np.ndarray:
         vr = vr or self._create_vr()
         return crop_mid(image=self.frame(vr),
                         mid=xywh2midwh(self.bb_xywh)[:2],
                         bb_size=max(self.bb_xywh[2:]))
 
-    def bb_crop_wide(self, vr: VideoReader | None = None, extra_space: float = 1.5) -> np.ndarray:
+    def bb_crop_wide(self, vr: Optional['decord.VideoReader'] = None, extra_space: float = 1.5) -> np.ndarray:
         return crop_mid(image=self.frame(vr),
                         mid=xywh2midwh(self.bb_xywh)[:2],
                         bb_size=np.rint(max(self.bb_xywh[2:]) * extra_space).astype(int))
 
-    def frame_center(self, vr: VideoReader | None = None) -> np.ndarray:
+    def frame_center(self, vr: Optional['decord.VideoReader'] = None) -> np.ndarray:
         vr = vr or self._create_vr()
         height, width = self.frame(vr).shape[:2]
         return np.rint(np.array([width / 2, height / 2])).astype(int)

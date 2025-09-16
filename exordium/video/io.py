@@ -1,5 +1,4 @@
 import os
-import av
 import logging
 from pathlib import Path
 from typing import Sequence, Iterable, Generator
@@ -7,10 +6,6 @@ from itertools import islice
 from PIL import Image
 import cv2
 import numpy as np
-from torchvision.transforms.functional import to_pil_image
-from torch.utils.data import Dataset
-from scipy.interpolate import interp1d
-import decord
 from exordium import PathType
 
 
@@ -71,46 +66,6 @@ def video2frames(input_path: PathType,
     os.system(CMD)
 
 
-def video2numpy(input_path: PathType):
-    vr = decord.VideoReader(str(input_path))
-    return np.array([vr[i].asnumpy() for i in range(len(vr))]) # (T,H,W,C)
-
-def frames2video(frames: PathType | Sequence[str] | Sequence[np.ndarray],
-                 output_path: PathType,
-                 fps: int | float = 25.,
-                 extension: str = '.png',
-                 overwrite: bool = False) -> None:
-    """Saves frames to a video without audio using moviepy.
-
-    Args:
-        frames (PathType | Sequence[str] | Sequence[np.ndarray]): frames or path to the frames.
-        output_path (PathType): path to the output video.
-        fps (int | float, optional): frame per sec. Defaults to 25.
-        extension (str, optional): frame file extension. Defaults to '.png'.
-        overwrite (bool, optional): if True it overwrites existing file. Defaults to False.
-    """
-    try:
-        import moviepy.editor as mpy
-    except:
-        raise ImportError('Package moviepy is missing. Install it first via `pip install moviepy`.')
-
-    output_path = Path(output_path)
-    if output_path.exists() and not overwrite:
-        logging.info(f'Video already exists')
-        return
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if isinstance(frames, (str, os.PathLike)):
-        frames = sorted([str(elem) for elem in list(Path(frames).iterdir()) if elem.suffix == extension])
-
-    logging.info(f'Found {len(frames)} frames.')
-    movie_clip = mpy.ImageSequenceClip(frames, fps)
-    movie_clip.write_videofile(str(output_path), fps=fps, logger="bar")
-    movie_clip.close()
-    logging.info(f'Video is done: {str(output_path)}')
-
-
 def sequence2video(frames: PathType | Sequence[np.ndarray] | Sequence[PathType],
                    output_path: PathType,
                    fps: int | float = 25,
@@ -152,59 +107,6 @@ def sequence2video(frames: PathType | Sequence[np.ndarray] | Sequence[PathType],
     logging.info(f'Video is done: {output_path}')
 
 
-def vr2video(video: decord.VideoReader,
-             frame_start: int,
-             frame_end: int,
-             output_path: PathType,
-             fps: int | float = 25) -> None:
-    """Saves a video to a .mp4 file without audio.
-
-    Args:
-        video (decord.VideoReader): video as a VideoReader object.
-        output_path (PathType): path to the output file.
-        fps (int | float, optional): frame per sec. Defaults to 25.
-    """
-    height, width = video[0].shape[:2]
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # type: ignore
-    output_video = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
-
-    for idx in range(frame_start, min(frame_end, len(video)), 1):
-        frame = video[idx]
-        frame = cv2.cvtColor(frame.asnumpy(), cv2.COLOR_RGB2BGR)
-        output_video.write(frame)
-
-    output_video.release()
-
-
-def write_frames_with_audio(video: decord.VideoReader,
-                            audio_path: PathType,
-                            output_video_path: PathType,
-                            fps: int | float = 25) -> None:
-    """Write frames to a video file with audio.
-
-    Args:
-        video (decord.VideoReader): video as a VideoReader object.
-        audio (PathType): path to the audio file.
-        output_video_path (PathType): path to the video file.
-        fps (int | float, optional): frame per sec. Defaults to 25.
-    """
-    height, width = video[0].shape[:2]
-
-    # create video
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # type: ignore
-    output_video = cv2.VideoWriter(str(output_video_path), fourcc, fps, (width, height))
-    for idx in range(len(video)):
-        frame = video[idx]
-        frame = cv2.cvtColor(frame.asnumpy(), cv2.COLOR_RGB2BGR)
-        output_video.write(frame)
-    output_video.release()
-
-    # add audio to video
-    CMD = f"ffmpeg -i {str(output_video_path)} -i {str(audio_path)} -c:v copy -c:a aac -strict experimental -map 0:v:0 -map 1:a:0 {output_video_path}_with_audio.mp4"
-    os.system(CMD)
-    os.system(f'rm {audio_path}')
-
-
 def batch_iterator(iterable: Iterable, batch_size: int) -> Generator[list, None, None]:
     """Yields batch size list of objects from an iterable."""
     iterator = iter(iterable)
@@ -216,70 +118,6 @@ def batch_iterator(iterable: Iterable, batch_size: int) -> Generator[list, None,
             break
 
         yield batch
-
-
-class ImageSequenceReader(Dataset):
-
-    def __init__(self, path: PathType, transform=None):
-        self.path = Path(path)
-        self.files = sorted(os.listdir(str(path)))
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, idx):
-
-        with Image.open(self.path / self.files[idx]) as img:
-            img.load()
-
-        if self.transform is not None:
-            return self.transform(img)
-
-        return img
-
-
-class ImageSequenceWriter:
-
-    def __init__(self, path: PathType, extension: str = 'jpg'):
-        self.path = Path(path)
-        self.path.mkdir(parents=True, exist_ok=True)
-        self.extension = extension
-        self.counter = 0
-
-    def write(self, frames: np.ndarray):
-        # frames == (T,C,H,W)
-        for t in range(frames.shape[0]):
-            to_pil_image(frames[t]).save(str(self.path / f'{str(self.counter).zfill(4)}.{self.extension}'))
-            self.counter += 1
-
-
-class VideoWriter:
-    def __init__(self, path, frame_rate, bit_rate=1000000):
-        self.container = av.open(path, mode='w')
-        self.stream = self.container.add_stream('h264', rate=f'{frame_rate:.4f}')
-        self.stream.pix_fmt = 'yuv420p'
-        self.stream.bit_rate = bit_rate
-
-    def write(self, frames):
-        # frames == (T,C,H,W)
-        self.stream.width = frames.size(3)
-        self.stream.height = frames.size(2)
-
-        # convert grayscale to RGB
-        if frames.size(1) == 1:
-            frames = frames.repeat(1, 3, 1, 1)
-
-        frames = frames.mul(255).byte().cpu().permute(0, 2, 3, 1).numpy()
-
-        for t in range(frames.shape[0]):
-            frame = frames[t]
-            frame = av.VideoFrame.from_ndarray(frame, format='rgb24')
-            self.container.mux(self.stream.encode(frame))
-
-    def close(self):
-        self.container.mux(self.stream.encode())
-        self.container.close()
 
 
 def image2np(image: np.ndarray | Image.Image | PathType, channel_order: str = 'RGB') -> np.ndarray:
@@ -400,6 +238,7 @@ def interpolate_1d(start_index: int, end_index: int, start_data: np.ndarray, end
     Returns:
         np.ndarray: interpolated data between start and end data.
     """
+    from scipy.interpolate import interp1d
     interp = interp1d(np.array([start_index, end_index]),
                       np.array([start_data, end_data]).T)
     interp_data: np.ndarray = interp(np.arange(start_index, end_index + 1, 1))

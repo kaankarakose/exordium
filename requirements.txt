@@ -4,6 +4,5 @@ opencv-python
 opencv-contrib-python
 scipy
 torch
-decord
 tqdm
 matplotlib

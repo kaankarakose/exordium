@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from exordium import WEIGHT_DIR, PathType
 from exordium.utils.ckpt import download_file
 from exordium.video.io import image2np, images2np
+from exordium.utils.device import get_torch_device
 
 
 class IrisLandmarks(Enum):
@@ -134,7 +135,7 @@ class IrisWrapper():
         self.remote_path = 'https://github.com/fodorad/exordium/releases/download/v1.0.0/iris_weights.pth'
         self.local_path = WEIGHT_DIR / 'iris' / Path(self.remote_path).name
         download_file(self.remote_path, self.local_path)
-        self.device = f'cuda:{gpu_id}' if gpu_id >= 0 else 'cpu'
+        self.device = get_torch_device(gpu_id)
         self.model = MediaPipeIris()
         self.model.load_state_dict(torch.load(self.local_path))
         self.model.to(self.device)

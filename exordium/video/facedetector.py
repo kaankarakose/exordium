@@ -6,12 +6,12 @@ from batch_face import RetinaFace
 import cv2
 import numpy as np
 from tqdm import tqdm
-from decord import VideoReader, cpu
 from exordium import PathType
 from exordium.video.io import image2np
 from exordium.video.bb import xyxy2xywh, xyxy2full
 from exordium.video.detection import FrameDetections, VideoDetections
 from exordium.utils.decorator import load_or_create
+from exordium.utils.device import get_device_str
 
 
 class RetinaFaceLandmarks(Enum):
@@ -147,6 +147,7 @@ class FaceDetector(ABC):
         if not Path(video_path).exists():
             raise FileNotFoundError(f'Video does not exist at {str(video_path)}')
 
+        from decord import VideoReader, cpu
         vr = VideoReader(str(video_path), ctx=cpu(0))
 
         video_detections = VideoDetections()
@@ -178,10 +179,10 @@ class FaceDetector(ABC):
 class RetinaFaceDetector(FaceDetector):
     """Face detector wrapper class using RetinaFace CNN."""
 
-    def __init__(self, gpu_id: int = 0, batch_size: int = 16, verbose: bool = False):
+    def __init__(self, gpu_id: int = 0, batch_size: int = 16, device: str | None = None, verbose: bool = False):
         super().__init__(batch_size=batch_size, verbose=verbose)
         self.batch_size = batch_size
-        self.detector = RetinaFace(gpu_id=gpu_id, network='resnet50')
+        self.detector = RetinaFace(gpu_id=gpu_id, device=device if device else get_device_str(), network='resnet50')
         logging.info('RetinaFace is loaded.')
 
     def run_detector(self, images_rgb: list[np.ndarray]) -> list[list[tuple[np.ndarray, np.ndarray, float]]]:
