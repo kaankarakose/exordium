@@ -1,6 +1,7 @@
 from os import PathLike
 from pathlib import Path
 from importlib.metadata import version
+from typing import Union
 
 try:
     __version__ = version("exordium")
@@ -16,7 +17,7 @@ DATA_DIR = PROJECT_ROOT / 'data'
 WEIGHT_DIR = Path().home() / '.cache' / 'torch' / 'hub' / 'checkpoints'
 
 # Type aliases
-PathType = str | PathLike
+PathType = Union[str, PathLike]
 
 # Example data
 EXAMPLE_VIDEO_PATH = DATA_DIR / 'videos' / 'example_multispeaker.mp4'

@@ -1,3 +1,4 @@
+from typing import Union # python <3.10 compatibility
 from PIL import Image
 from pathlib import Path
 from typing import Sequence
@@ -43,7 +44,7 @@ class L2csNetWrapper():
         ])
 
 
-    def __call__(self, faces: Sequence[PathType | Image.Image | np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+    def __call__(self, faces: Sequence[Union[PathType, Image.Image, np.ndarray]]) -> tuple[np.ndarray, np.ndarray]:
         """Predicts gaze vector for a single face image.
 
         The images are loaded and converted to RGB channel order, resized, then normalized.
@@ -77,7 +78,7 @@ class L2csNetWrapper():
         return yaw_normed, pitch_normed
 
 
-    def predict_pipeline(self, faces: Sequence[PathType | Image.Image | np.ndarray],
+    def predict_pipeline(self, faces: Sequence[Union[PathType,Image.Image,np.ndarray]],
                                roll_angles: Sequence[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Predicts gaze vector using face images and their corresponding head pose roll angles.
 
@@ -166,18 +167,49 @@ class L2CS(nn.Module):
         return pre_yaw_gaze, pre_pitch_gaze
 
 
-def L2CS_Builder(arch: str = 'ResNet50', bins: int = 90):
-    match arch:
-        case 'ResNet18':
-            model = L2CS(models.resnet.BasicBlock, [2, 2,  2, 2], bins)
-        case 'ResNet34':
-            model = L2CS(models.resnet.BasicBlock, [3, 4,  6, 3], bins)
-        case 'ResNet50':
-            model = L2CS(models.resnet.Bottleneck, [3, 4,  6, 3], bins)
-        case 'ResNet101':
-            model = L2CS(models.resnet.Bottleneck, [3, 4, 23, 3], bins)
-        case 'ResNet152':
-            model = L2CS(models.resnet.Bottleneck, [3, 8, 36, 3], bins)
-        case _:
-            raise ValueError('Invalid architecture')
+# def L2CS_Builder(arch: str = 'ResNet50', bins: int = 90):
+#     match arch:
+#         case 'ResNet18':
+#             model = L2CS(models.resnet.BasicBlock, [2, 2,  2, 2], bins)
+#         case 'ResNet34':
+#             model = L2CS(models.resnet.BasicBlock, [3, 4,  6, 3], bins)
+#         case 'ResNet50':
+#             model = L2CS(models.resnet.Bottleneck, [3, 4,  6, 3], bins)
+#         case 'ResNet101':
+#             model = L2CS(models.resnet.Bottleneck, [3, 4, 23, 3], bins)
+#         case 'ResNet152':
+#             model = L2CS(models.resnet.Bottleneck, [3, 8, 36, 3], bins)
+#         case _:
+#             raise ValueError('Invalid architecture')
+#     return model
+
+def L2CS_Builder(arch: str = 'ResNet50', bins: int = 90): # python <3.10 compatibility
+    
+    if arch == 'ResNet18':
+        model = L2CS(models.resnet.BasicBlock, [2, 2,  2, 2], bins)
+    elif arch == 'ResNet34':
+        model = L2CS(models.resnet.BasicBlock, [3, 4,  6, 3], bins)
+    elif arch == 'ResNet50':
+        model = L2CS(models.resnet.Bottleneck, [3, 4,  6, 3], bins)
+    elif arch == 'ResNet101':
+        model = L2CS(models.resnet.Bottleneck, [3, 4, 23, 3], bins)
+    elif arch == 'ResNet152':
+        model = L2CS(models.resnet.Bottleneck, [3, 8, 36, 3], bins)
+    else:
+        raise ValueError('Invalid architecture')
     return model
+
+    # match arch:
+    #     case 'ResNet18':
+    #         model = L2CS(models.resnet.BasicBlock, [2, 2,  2, 2], bins)
+    #     case 'ResNet34':
+    #         model = L2CS(models.resnet.BasicBlock, [3, 4,  6, 3], bins)
+    #     case 'ResNet50':
+    #         model = L2CS(models.resnet.Bottleneck, [3, 4,  6, 3], bins)
+    #     case 'ResNet101':
+    #         model = L2CS(models.resnet.Bottleneck, [3, 4, 23, 3], bins)
+    #     case 'ResNet152':
+    #         model = L2CS(models.resnet.Bottleneck, [3, 8, 36, 3], bins)
+    #     case _:
+    #         raise ValueError('Invalid architecture')
+    # return model

@@ -1,3 +1,4 @@
+from __future__ import annotations # for Python <3.10 compatibility
 import os
 import logging
 from pathlib import Path
@@ -151,17 +152,27 @@ def image2np(image: np.ndarray | Image.Image | PathType, channel_order: str = 'R
     if image.ndim == 3 and image.shape[-1] == 3:
 
         flag: int | None = None
-        match channel_order.lower():
-            case 'bgr':
-                flag = cv2.COLOR_RGB2BGR
-            case 'hsv':
-                flag = cv2.COLOR_RGB2HSV
-            case 'lab':
-                flag = cv2.COLOR_RGB2LAB
-            case 'gray':
-                flag = cv2.COLOR_RGB2GRAY
-            case _: # stay in RGB
-                pass
+        if channel_order.lower() == 'bgr': # - Python <3.10
+            flag = cv2.COLOR_RGB2BGR
+        elif channel_order.lower() == 'hsv':
+            flag = cv2.COLOR_RGB2HSV
+        elif channel_order.lower() == 'lab':
+            flag = cv2.COLOR_RGB2LAB
+        elif channel_order.lower() == 'gray':
+            flag = cv2.COLOR_RGB2GRAY
+        # else: # stay in RGB 
+    
+        # match channel_order.lower(): # Python 3.10+
+        #     case 'bgr':
+        #         flag = cv2.COLOR_RGB2BGR
+        #     case 'hsv':
+        #         flag = cv2.COLOR_RGB2HSV
+        #     case 'lab':
+        #         flag = cv2.COLOR_RGB2LAB
+        #     case 'gray':
+        #         flag = cv2.COLOR_RGB2GRAY
+        #     case _: # stay in RGB
+        #         pass
 
         if flag is not None:
             image = cv2.cvtColor(image, flag)

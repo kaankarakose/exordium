@@ -1,3 +1,4 @@
+from typing import Union
 from typing import Callable, Sequence
 import cv2
 import numpy as np
@@ -72,7 +73,7 @@ def spec_augment(spec: np.ndarray,
     return spec
 
 
-def crop_and_pad_window(x: np.ndarray, win_size: int, m_freq: int | float, timestep: int | float):
+def crop_and_pad_window(x: np.ndarray, win_size: int, m_freq: Union[int, float], timestep: Union[int,float]):
     start = int(np.clip((timestep - win_size) * m_freq, a_min=0, a_max=None))
     end = int(timestep * m_freq)
     x_padded = np.zeros((int(win_size*m_freq),x.shape[1]))
@@ -126,7 +127,7 @@ class Resize:
     """Resizes video represented as a torch Tensor of shape (C, T, H, W).
     Video processing class, similar to torchvision but for videos.
     """
-    def __init__(self, size: int | None, mode: str = "bilinear"):
+    def __init__(self, size: Union[int, None], mode: str = "bilinear"):
         self.size = size
         self.mode = mode
 
@@ -146,7 +147,7 @@ class CenterCrop:
     """Center crops a video represented as a torch Tensor of shape (C, T, H, W).
     Video processing class, similar to torchvision but for videos.
     """
-    def __init__(self, size: int | tuple[int, int]):
+    def __init__(self, size: Union[int , tuple[int, int]]):
         self.size = size
 
     def __call__(self, video: torch.Tensor) -> torch.Tensor:

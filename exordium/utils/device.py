@@ -1,7 +1,7 @@
 import torch
+from typing import Union
 
-
-def get_device_str(gpu_id: int | None = None) -> str:
+def get_device_str(gpu_id: Union[int, None] = None) -> str:
     if torch.backends.mps.is_available():
         # Apple Silicon GPU
         return "mps" if gpu_id is None else f"mps:{gpu_id}"
@@ -17,6 +17,6 @@ def get_device_str(gpu_id: int | None = None) -> str:
         return "cpu"
 
 
-def get_torch_device(gpu_id: int | None = None) -> torch.device:
+def get_torch_device(gpu_id: Union[int , None] = None) -> torch.device:
     return torch.device(get_device_str(gpu_id))
 

@@ -1,3 +1,5 @@
+from typing import Union # for Python <3.10 compatibility
+
 from pathlib import Path
 import pickle
 from math import cos, atan2, asin, sqrt
@@ -100,8 +102,8 @@ class TDDFA_V2():
         }
         self.model = TDDFA_ONNX(**def_cfg)
 
-    def __call__(self, image: PathType | np.ndarray,
-                       boxes: list[tuple[int, int, int, int, float]] | None = None) -> dict[str, np.ndarray]:
+    def __call__(self, image: Union[PathType, np.ndarray],
+                       boxes: list[Union[tuple[int, int, int, int, float]], None] = None) -> dict[str, np.ndarray]:
         """Estimate landmarks and headpose from an image using face bounding boxes.
 
         Args:
@@ -132,7 +134,7 @@ class TDDFA_V2():
             'camera_matrix': camera_matrix
         }
 
-    def face_and_xyxy_landmarks_to_eyes_crop(self, face: PathType | np.ndarray,
+    def face_and_xyxy_landmarks_to_eyes_crop(self, face: Union[PathType, np.ndarray],
                                                    left_eye_landmarks_xyxy: np.ndarray,
                                                    right_eye_landmarks_xyxy: np.ndarray,
                                                    extra_space: float = 1.) -> dict[str, np.ndarray]:
@@ -155,7 +157,7 @@ class TDDFA_V2():
         right_eye = get_eye_with_center_crop(face, right_eye_center, bb_size)
         return {'left_eye': left_eye, 'right_eye': right_eye}
 
-    def face_and_landmarks_to_eyes_crop(self, face: PathType | np.ndarray,
+    def face_and_landmarks_to_eyes_crop(self, face: Union[PathType, np.ndarray],
                                               landmarks: np.ndarray,
                                               extra_space: float = 1.) -> dict[str, np.ndarray]:
         """Cuts out the left and right eye regions using previously calculated 3DDFA_V2 landmarks.
@@ -173,11 +175,11 @@ class TDDFA_V2():
                                                          get_right_eye_xyxy_landmarks(landmarks),
                                                          extra_space)
 
-    def face_and_landmarks_to_eyes_crop_with_yaw_dependence(self, face: PathType | np.ndarray,
+    def face_and_landmarks_to_eyes_crop_with_yaw_dependence(self, face: Union[PathType, np.ndarray],
                                                                   landmarks: np.ndarray,
                                                                   yaw_degree: float,
                                                                   yaw_degree_threshold: float = 25.,
-                                                                  extra_space: float = 1.) -> dict[str, np.ndarray | None]:
+                                                                  extra_space: float = 1.) -> dict[str, Union[PathType, None]]:
         """Cuts out the left and right eye regions using previously calculated 3DDFA_V2 landmarks.
 
         Args:
@@ -200,7 +202,7 @@ class TDDFA_V2():
 
         return eye_crops
 
-    def face_to_eyes_crop(self, face: PathType | np.ndarray,
+    def face_to_eyes_crop(self, face: Union[PathType, np.ndarray],
                                 extra_space: float = 1.) -> dict[str, np.ndarray]:
         """Cuts out the left and right eye regions.
 
@@ -218,7 +220,7 @@ class TDDFA_V2():
                                                                          get_right_eye_xyxy_landmarks(face_features['landmarks']),
                                                                          extra_space)
 
-    def face_to_eyes_crop_with_yaw_dependence(self, face: PathType | np.ndarray,
+    def face_to_eyes_crop_with_yaw_dependence(self, face: Union[PathType, np.ndarray],
                                                     yaw_degree_threshold: float = 25.,
                                                     extra_space: float = 1.) -> dict[str, np.ndarray]:
         """Cuts out the left and right eye regions.

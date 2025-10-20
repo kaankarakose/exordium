@@ -2,7 +2,9 @@ import csv
 import random
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Self, Optional
+from typing import  Optional
+from typing_extensions import Self # python <3.10 comp
+from typing import Union
 from dataclasses import dataclass
 import numpy as np
 from exordium import PathType
@@ -10,10 +12,10 @@ from exordium.video.io import image2np
 from exordium.video.bb import xywh2xyxy, xywh2midwh, crop_mid
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True)#, kw_only=True)
 class Detection(ABC):
     frame_id: int # frame id.
-    source: str | np.ndarray # source of the detections (path to the image or video file) or the detection is from np.ndarray.
+    source: Union[str, np.ndarray] # source of the detections (path to the image or video file) or the detection is from np.ndarray.
     score: float # detector confidence value between [0..1].
     bb_xywh: np.ndarray # bounding box of shape (4,) in xywh format.
     landmarks: np.ndarray # xy pixel coordinates of the face landmarks of shape (5,2).
@@ -79,7 +81,7 @@ class Detection(ABC):
                     np.all(np.equal(self.landmarks, other.landmarks)))
 
 
-@dataclass(frozen=True, kw_only=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class DetectionFromImage(Detection):
 
     source: str
@@ -102,7 +104,7 @@ class DetectionFromImage(Detection):
                         bb_size=np.rint(max(self.bb_xywh[2:]) * extra_space).astype(int))
 
 
-@dataclass(frozen=True, kw_only=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class DetectionFromVideo(Detection):
 
     source: str
@@ -132,7 +134,7 @@ class DetectionFromVideo(Detection):
         return np.rint(np.array([width / 2, height / 2])).astype(int)
 
 
-@dataclass(frozen=True, kw_only=True, eq=False)
+@dataclass(frozen=True, eq=False)
 class DetectionFromTensor(Detection):
 
     source: np.ndarray
@@ -167,18 +169,24 @@ class DetectionFactory:
             if not key in list(kwargs.keys()):
                 raise KeyError(f'Invalid Detection dictionary. Missing key {key}.')
 
-        source: str | np.ndarray | None = kwargs.get('source')
+        source: Union[str,np.ndarray, None] = kwargs.get('source')
 
         if isinstance(source, str):
             extension = Path(source).suffix.lower()
 
-            match extension:
-                case '.mp4' | '.mpeg' | '.mov' | '.mkv' | '.avi':
-                    return DetectionFromVideo(**kwargs)
-                case '.png' | '.jpg' | '.jpeg' | '.bmp':
-                    return DetectionFromImage(**kwargs)
-                case _:
-                    raise ValueError(f'Given file with {extension} is not supported.')
+            # match extension:
+            #     case '.mp4' | '.mpeg' | '.mov' | '.mkv' | '.avi':
+            #         return DetectionFromVideo(**kwargs)
+            #     case '.png' | '.jpg' | '.jpeg' | '.bmp':
+            #         return DetectionFromImage(**kwargs)
+            #     case _:
+            #         raise ValueError(f'Given file with {extension} is not supported.')
+            if extension in {'.mp4', '.mpeg', '.mov', '.mkv', '.avi'}:
+                return DetectionFromVideo(**kwargs)
+            elif extension in {'.png', '.jpg', '.jpeg', '.bmp'}:
+                return DetectionFromImage(**kwargs)
+            else:
+                raise ValueError(f'Given file with {extension} is not supported.')
 
         return DetectionFromTensor(**kwargs)
 
@@ -390,7 +398,7 @@ class VideoDetections:
 class Track:
     """Represents face bounding box tracks over multiple frames from a single video."""
 
-    def __init__(self, track_id: int = -1, detection: Detection | None = None):
+    def __init__(self, track_id: int = -1, detection: Union[Detection,None] = None):
         self.track_id = track_id
         self.detections: list[Detection] = [] if detection is None else [detection]
         self.index = 0

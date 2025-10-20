@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import Union
 from enum import Enum
 from pathlib import Path
 from batch_face import RetinaFace
@@ -179,10 +180,10 @@ class FaceDetector(ABC):
 class RetinaFaceDetector(FaceDetector):
     """Face detector wrapper class using RetinaFace CNN."""
 
-    def __init__(self, gpu_id: int = 0, batch_size: int = 16, device: str | None = None, verbose: bool = False):
+    def __init__(self, gpu_id: int = 0, batch_size: int = 16, device: Union[str,None] = None, verbose: bool = False):
         super().__init__(batch_size=batch_size, verbose=verbose)
         self.batch_size = batch_size
-        self.detector = RetinaFace(gpu_id=gpu_id, device=device if device else get_device_str(), network='resnet50')
+        self.detector = RetinaFace(gpu_id=gpu_id, network='resnet50')
         logging.info('RetinaFace is loaded.')
 
     def run_detector(self, images_rgb: list[np.ndarray]) -> list[list[tuple[np.ndarray, np.ndarray, float]]]:
